@@ -444,15 +444,19 @@ func buildLLMConfig(global GlobalConfig, logger *slog.Logger, database *db.DB) (
 	defaultModel, sources := buildLLMModelSources(context.Background(), global, config, logger)
 
 	httpc := llmhttp.NewClient(nil)
+	built, err := buildModels(context.Background(), sources, httpc, logger)
+	if err != nil {
+		return nil, err
+	}
 	return &server.LLMConfig{
-		Models:              modelsources.Build(models.All(), sources, httpc, logger),
+		Models:              built,
 		TranscriptionModels: modelsources.TranscriptionModels(sources),
 		DefaultModel:        defaultModel,
 		DB:                  database,
 		HTTPC:               httpc,
 		RefreshBuiltModels: func(ctx context.Context) ([]models.Built, error) {
 			_, sources := buildLLMModelSources(ctx, global, config, logger)
-			return modelsources.Build(models.All(), sources, httpc, logger), nil
+			return buildModels(ctx, sources, httpc, logger)
 		},
 		Logger: logger,
 	}, nil
